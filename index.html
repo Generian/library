@@ -28,6 +28,10 @@
       opacity: 0 !important;
       pointer-events: none !important;
     }
+
+    #settings {
+      padding-bottom: 20px;
+    }
   </style>
   <style type="text/css">
     @font-face {
@@ -96,6 +100,17 @@
   </style>
 
 <body>
+  <section id="settings">
+    <span>viewfactor:</span>
+    <input type="number" name="viewfactor" value="2">
+    <span>copyfactor:</span>
+    <input type="number" name="copyfactor" value="8">
+    <span>likefactor:</span>
+    <input type="number" name="likefactor" value="15">
+    <span>decayscale:</span>
+    <input type="number" name="decayscale" value="80">
+    <button id="update">Refresh</button>
+  </section>
   <section id="projectsList" class="projects-list project-list-thumbs-view">
   </section>
   <script src="./index.js"></script>
