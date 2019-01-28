@@ -16,7 +16,7 @@ function dateDiff(date1, date2) {
 }
 
 $.ajax({
-  url: 'http://vpc-prod-project-info-zn5wnvz33xa6bt3puh2yfot5va.eu-west-1.es.amazonaws.com/read_project_info/_search',
+  url: 'https://vpc-prod-project-info-zn5wnvz33xa6bt3puh2yfot5va.eu-west-1.es.amazonaws.com/read_project_info/_search',
   type: 'POST',
   data: JSON.stringify({
     "explain": true,
