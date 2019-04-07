@@ -120,6 +120,7 @@ function populateNew(newSearch = false, firstLoad = false) {
     let searchTerm = $("#searchByKeyword").val()
     let mode = $(".sortMode.active").attr('id')
     let timeframe = $(".timeFilter").val()
+    let userSearch = false
 
     // In case of a new text search, reset all other filter and sorting options
     if (newSearch) {
@@ -153,8 +154,9 @@ function populateNew(newSearch = false, firstLoad = false) {
         }
     }
 
-    // Additional feature that allows for search by username. More to come later
+    // Additional feature that allows for search by username. Very fragile as of now. Can come later.
     if (searchTerm.slice(0,5) == "user:") {
+      userSearch = true
       user = searchTerm.slice(5)
       searchTerm = "" // TODO: Handle remaining search term
       data.query.function_score.query.bool.filter.push({ "term":  { "owner_name": user }})
@@ -180,13 +182,15 @@ function populateNew(newSearch = false, firstLoad = false) {
       }
     }
 
-    // Handle sortinf mode
+    // Handle sorting mode
     if (mode !== "") {
       updateActiveState(mode) // Change active state of multi-select sort buttons
       data.sort = [
         { [mode] : {"order" : "desc"}},
         "_score"
       ]
+    } else if (!userSearch && searchTerm == "") {
+      firstLoad = true // Treat this case like the first page load (with default query)
     } else {
       data.sort = [
         "_score" // In cased of no mode, just sort by score
@@ -213,55 +217,60 @@ function populateNew(newSearch = false, firstLoad = false) {
         headers: {'Content-Type': 'application/json'},
         success: (resp) => {
             $('#projectsList').empty();
-            resp.hits.hits.forEach((proj) => {
-                // Extract project data. Not sure if we already have everything we need to populate the entire card. Should be added to ES if missing I guess
-                const p = proj._source
-                // Single project card template
-                const $projectCard = `<div class="project-item">
-                  <div class="project-thumb-item">
-                    <div class="project-item-top"> <a class="project-image-wrapper" href="https://www.simscale.com/projects/${p.owner_name}/${p.public_project_name}/"> <img class="img-responsive" src="https://www.simscale.com${p.thumbnail_url}"
-                          alt="${p.thumbnail_url}"> </a>
-                      <div class="project-permissions"> </div> <a href="https://www.simscale.com/workbench/?pid=${p.project_id_ext}" class="btn btn-sm btn-primary open-project-link"><i class="fa fa-share" title="Open in your workbench"></i></a>
-                    </div>
-                    <div class="project-item-bottom">
-                      <div class="project-item-body">
-                        <table>
-                          <tbody>
-                            <tr>
-                              <td> <a href="https://www.simscale.com/projects/${p.owner_name}/${p.public_project_name}/">
-                                  <p class="project-title">${p.project_name}</p>
-                                </a> </td>
-                            </tr>
-                            <tr>
-                              <td><a href="https://www.simscale.com/users/${p.owner_name}/" class="project-author">${p.owner_name}</a></td>
-                            </tr>
-                            <tr>
-                              <td colspan="2">
-                                <p class="project-info">${p.num_geometries} CAD model / ${p.num_meshes} mesh / ${p.num_simulations} simulation </p>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+            if (resp.hits.total == 0) {
+              $("#warning").removeClass("hideWarning")
+            } else {
+              $("#warning").addClass("hideWarning")
+              resp.hits.hits.forEach((proj) => {
+                  // Extract project data. Not sure if we already have everything we need to populate the entire card. Should be added to ES if missing I guess
+                  const p = proj._source
+                  // Single project card template
+                  const $projectCard = `<div class="project-item">
+                    <div class="project-thumb-item">
+                      <div class="project-item-top"> <a class="project-image-wrapper" href="https://www.simscale.com/projects/${p.owner_name}/${p.public_project_name}/"> <img class="img-responsive" src="https://www.simscale.com${p.thumbnail_url}"
+                            alt="${p.thumbnail_url}"> </a>
+                        <div class="project-permissions"> </div> <a href="https://www.simscale.com/workbench/?pid=${p.project_id_ext}" class="btn btn-sm btn-primary open-project-link"><i class="fa fa-share" title="Open in your workbench"></i></a>
                       </div>
-                      <div class="project-item-footer">
-                        <table>
-                          <tbody>
-                            <tr>
-                              <td>
-                                <p class="project-date">${dateDiff(new Date(p.created))}</p>
-                              </td>
-                              <td class="project-links"> <i class="fas fa-eye" title="Number of views"></i><span>${p.num_views}</span> <i class="fas fa-heart" title="Number of likes"></i><span>${p.num_likes}</span> <i class="fas fa-code-branch"
-                                  title="Number of copies"></i><span>${p.num_copies}</span> </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                      <div class="project-item-bottom">
+                        <div class="project-item-body">
+                          <table>
+                            <tbody>
+                              <tr>
+                                <td> <a href="https://www.simscale.com/projects/${p.owner_name}/${p.public_project_name}/">
+                                    <p class="project-title">${p.project_name}</p>
+                                  </a> </td>
+                              </tr>
+                              <tr>
+                                <td><a href="https://www.simscale.com/users/${p.owner_name}/" class="project-author">${p.owner_name}</a></td>
+                              </tr>
+                              <tr>
+                                <td colspan="2">
+                                  <p class="project-info">${p.num_geometries} CAD model / ${p.num_meshes} mesh / ${p.num_simulations} simulation </p>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <div class="project-item-footer">
+                          <table>
+                            <tbody>
+                              <tr>
+                                <td>
+                                  <p class="project-date">${dateDiff(new Date(p.created))}</p>
+                                </td>
+                                <td class="project-links"> <i class="fas fa-eye" title="Number of views"></i><span>${p.num_views}</span> <i class="fas fa-heart" title="Number of likes"></i><span>${p.num_likes}</span> <i class="fas fa-code-branch"
+                                    title="Number of copies"></i><span>${p.num_copies}</span> </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>`
-                // Add project card
-                $('#projectsList').append($projectCard);
-            })
+                  </div>`
+                  // Add project card
+                  $('#projectsList').append($projectCard);
+              })
+            }
         }
     })
 }
