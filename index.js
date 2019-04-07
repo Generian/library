@@ -104,6 +104,19 @@ function dateDiff(created) {
   return age_string
 }
 
+// Function to get rid of the super long numbers. Let's format those better please
+function numFormatter(num) {
+  let formatted = ""
+  if (num >= 1000000) {
+    formatted = (num/1000000).toFixed(1) + 'M'
+  } else if (num >= 1000) {
+    formatted = (num/1000).toFixed(1) + 'k'
+  } else {
+    formatted = num
+  }
+  return formatted
+}
+
 // Function to change the active state of the multi-select sort buttons
 function updateActiveState(id) {
   $("button#num_views").removeClass("active")
@@ -258,8 +271,8 @@ function populateNew(newSearch = false, firstLoad = false) {
                                 <td>
                                   <p class="project-date">${dateDiff(new Date(p.created))}</p>
                                 </td>
-                                <td class="project-links"> <i class="fas fa-eye" title="Number of views"></i><span>${p.num_views}</span> <i class="fas fa-heart" title="Number of likes"></i><span>${p.num_likes}</span> <i class="fas fa-code-branch"
-                                    title="Number of copies"></i><span>${p.num_copies}</span> </td>
+                                <td class="project-links"> <i class="fas fa-eye" title="Number of views"></i><span>${numFormatter(p.num_views)}</span> <i class="fas fa-heart" title="Number of likes"></i><span>${numFormatter(p.num_likes)}</span> <i class="fas fa-code-branch"
+                                    title="Number of copies"></i><span>${numFormatter(p.num_copies)}</span> </td>
                               </tr>
                             </tbody>
                           </table>
