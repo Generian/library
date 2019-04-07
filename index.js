@@ -1,4 +1,4 @@
-// Define
+// Define project scoring rules
 const defaultFunctions = [
   {
     "field_value_factor": {
@@ -43,9 +43,10 @@ const defaultFunctions = [
   }
 ]
 
+// This is the default search query that is only used on page load
 const defaultQuery = {
-    "explain": true,
-    "size": 100,
+    "explain": true, // Just for debugging
+    "size": 100, // This is just for debugging. Needs to be aligned with the offset we use for infinite scroll
     "query": {
         "function_score": {
             "query": {
@@ -65,25 +66,22 @@ const defaultQuery = {
     }
 }
 
+// Define function to indicate project age better. Not necessary, but let's update it as part of this task as well.
 function dateDiff(created) {
   const today = new Date()
 
   //Get 1 day in milliseconds
   const one_day=1000*60*60*24
 
-  // Convert both dates to milliseconds
-  const created_ms = created.getTime()
-  const today_ms = today.getTime()
+  // Calculate the difference in milliseconds and divide by length of one day
+  const age_in_days = Math.round((today.getTime() - created.getTime())/one_day)
 
-  // Calculate the difference in milliseconds
-  const difference_ms = today_ms - created_ms
   const diff_months = today.getMonth() - created.getMonth()
   const diff_years = today.getFullYear() - created.getFullYear()
 
-  // Convert back to days and return
-  const age_in_days = Math.round(difference_ms/one_day)
   let age_string = ""
 
+  // This is to get rid of the ugly "Created 1025 days ago" age indication on most project cards
   if (age_in_days == 0) {
     age_string = "Created today"
   } else if (age_in_days == 1) {
@@ -106,6 +104,7 @@ function dateDiff(created) {
   return age_string
 }
 
+// Function to change the active state of the multi-select sort buttons
 function updateActiveState(id) {
   $("button#num_views").removeClass("active")
   $("button#num_likes").removeClass("active")
@@ -115,11 +114,14 @@ function updateActiveState(id) {
   $(`button#${id}`).addClass("active")
 }
 
+// Main function to populate the page with project cards in a specific order
 function populateNew(newSearch = false, firstLoad = false) {
+    // Determine filter and sorting modes
     let searchTerm = $("#searchByKeyword").val()
     let mode = $(".sortMode.active").attr('id')
     let timeframe = $(".timeFilter").val()
 
+    // In case of a new text search, reset all other filter and sorting options
     if (newSearch) {
       searchTerm = $("#searchByKeyword").val()
       mode = ""
@@ -128,9 +130,10 @@ function populateNew(newSearch = false, firstLoad = false) {
       $(".timeFilter").val("all")
     }
 
+    // Elastic search query template that will be used for any page update after page load
     let data = {
-        "explain": true,
-        "size": 100,
+        "explain": true, // Just for debugging
+        "size": 100, // This is just for debugging. Needs to be aligned with the offset we use for infinite scroll
         "sort" : [
     	    "_score"
         ],
@@ -145,11 +148,12 @@ function populateNew(newSearch = false, firstLoad = false) {
                   }
                 },
                 "functions": [],
-                "score_mode": "sum"
+                "score_mode": "multiply"
             }
         }
     }
 
+    // Additional feature that allows for search by username. More to come later
     if (searchTerm.slice(0,5) == "user:") {
       user = searchTerm.slice(5)
       searchTerm = ""
@@ -157,6 +161,7 @@ function populateNew(newSearch = false, firstLoad = false) {
       data.query.function_score.functions = defaultFunctions
     }
 
+    // Handle text search
     if (searchTerm !== "") {
       data.query.function_score.query.bool.must = {
       	"match": {
@@ -174,25 +179,30 @@ function populateNew(newSearch = false, firstLoad = false) {
       data.query.function_score.functions = []
     }
 
+    // Handle sortinf mode
     if (mode !== "") {
-      updateActiveState(mode)
+      updateActiveState(mode) // Change active state of multi-select sort buttons
       data.sort = [
         { [mode] : {"order" : "desc"}},
         "_score"
       ]
     } else {
       data.sort = [
-        "_score"
+        "_score" // In cased of no mode, just sort by score
       ]
     }
 
+    // Handle time frame filtering
     if (timeframe !== "all") {
       let d = new Date();
       d.setDate(d.getDate()-timeframe);
-      data.query.function_score.query.bool.filter.push({"range": {"created": {"gte": d.toISOString()}}})
+      data.query.function_score.query.bool.filter.push({"range": {"created": {"gte": d.toISOString()}}}) // So far it can only handle filtering by creation date. But that's fine for now
     }
 
+    // Check if it's page load or not. In case of first page load serve the default query template
     data = firstLoad ? defaultQuery : data
+
+    // Log query for debugging
     console.log("Search query: ",data)
 
     $.ajax({
@@ -205,7 +215,7 @@ function populateNew(newSearch = false, firstLoad = false) {
             resp.hits.hits.forEach((proj) => {
                 // Extract project data. Not sure if we already have everything we need to populate the entire card. Should be added to ES if missing I guess
                 const p = proj._source
-                // Just a helper to calculate the # days since
+                // Single project card template
                 const $projectCard = `<div class="project-item">
                   <div class="project-thumb-item">
                     <div class="project-item-top"> <a class="project-image-wrapper" href="https://www.simscale.com/projects/${p.owner_name}/${p.public_project_name}/"> <img class="img-responsive" src="https://www.simscale.com${p.thumbnail_url}"
@@ -248,6 +258,7 @@ function populateNew(newSearch = false, firstLoad = false) {
                     </div>
                   </div>
                 </div>`
+                // Add project card
                 $('#projectsList').append($projectCard);
             })
         }
