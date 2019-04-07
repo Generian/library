@@ -160,6 +160,7 @@ function populateNew(newSearch = false, firstLoad = false) {
       data.query.function_score.query.bool.filter.push({ "term":  { "owner_name": user }})
       defaultFunctions.pop() // Remove time decay when filtering by user
       data.query.function_score.functions = defaultFunctions
+      data.query.function_score.score_mode = "sum"
     }
 
     // Handle text search
