@@ -1,9 +1,9 @@
 // Define project scoring rules
-const defaultFunctions = [
+let defaultFunctions = [
   {
     "field_value_factor": {
         "field": "num_views",
-        "factor": 2,
+        "factor": 2, // All the factors won't have any impact since we're in multiply mode
         "modifier": "log2p",
         "missing": 1
     }
@@ -156,8 +156,9 @@ function populateNew(newSearch = false, firstLoad = false) {
     // Additional feature that allows for search by username. More to come later
     if (searchTerm.slice(0,5) == "user:") {
       user = searchTerm.slice(5)
-      searchTerm = ""
+      searchTerm = "" // TODO: Handle remaining search term
       data.query.function_score.query.bool.filter.push({ "term":  { "owner_name": user }})
+      defaultFunctions.pop() // Remove time decay when filtering by user
       data.query.function_score.functions = defaultFunctions
     }
 
@@ -176,7 +177,6 @@ function populateNew(newSearch = false, firstLoad = false) {
       data.query.function_score.query.bool.must_not = {
         "match": {"project_name": "Tutorial"}
       }
-      data.query.function_score.functions = []
     }
 
     // Handle sortinf mode
